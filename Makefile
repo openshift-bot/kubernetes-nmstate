@@ -238,6 +238,9 @@ test-e2e-operator-ocp:
 test-e2e-azure-ocp:
 	./hack/ocp-e2e-tests-azure.sh
 
+test-e2e-handler-cloud-ocp:
+	./hack/ocp-e2e-tests-cloud.sh
+
 cluster-up:
 	./cluster/up.sh
 
