@@ -41,6 +41,14 @@ You can choose to deploy this operator on a
 [local virtualized cluster](https://nmstate.github.io/kubernetes-nmstate/deployment/local-cluster) or on your
 [arbitrary cluster](https://nmstate.github.io/kubernetes-nmstate/deployment/arbitrary-cluster).
 
+You can also install kubernetes-nmstate using the
+[Helm chart](https://nmstate.github.io/kubernetes-nmstate/deployment/helm):
+
+```shell
+VERSION=v0.87.0
+helm install nmstate oci://quay.io/nmstate/kubernetes-nmstate --version "${VERSION#v}" --namespace nmstate --create-namespace
+```
+
 The following comprehensive 101 series is the best place to start learning about all
 the features:
 
