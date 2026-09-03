@@ -165,6 +165,27 @@ func setDesiredStateWithPolicyAndCapture(name string, desiredState nmstate.State
 	setDesiredStateWithPolicyAndCaptureAndNodeSelectorEventually(name, desiredState, capture, runAtWorkers)
 }
 
+func setDesiredStateWithPolicyMaxUnavailableAndNodeSelector(
+	desiredState nmstate.State,
+	maxUnavailableValue intstr.IntOrString,
+	nodeSelector map[string]string,
+) error {
+	policy := nmstatev1.NodeNetworkConfigurationPolicy{}
+	policy.Name = TestPolicy
+	key := types.NamespacedName{Name: TestPolicy}
+	err := testenv.Client.Get(context.TODO(), key, &policy)
+	policy.Spec.DesiredState = desiredState
+	policy.Spec.NodeSelector = nodeSelector
+	policy.Spec.MaxUnavailable = &maxUnavailableValue
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return testenv.Client.Create(context.TODO(), &policy)
+		}
+		return err
+	}
+	return testenv.Client.Update(context.TODO(), &policy)
+}
+
 // nodeMatchesSelector checks if a node's labels match the given selector.
 // An empty selector matches all nodes.
 func nodeMatchesSelector(nodeName string, nodeSelector map[string]string) bool {
@@ -279,7 +300,7 @@ func nodeNetworkConfigurationPolicy(policyName string) nmstatev1.NodeNetworkConf
 	return policy
 }
 
-func deleteNodeNeworkStates() {
+func deleteNodeNetworkStates() {
 	nodeNetworkStateList := &nmstatev1beta1.NodeNetworkStateList{}
 	err := testenv.Client.List(context.TODO(), nodeNetworkStateList, &dynclient.ListOptions{})
 	Expect(err).ToNot(HaveOccurred())
@@ -337,13 +358,12 @@ func restartNodeWithoutWaiting(node string) {
 func waitForNodeToStart(node string) {
 	Byf("Waiting till node %s is rebooted", node)
 	// It will wait till uptime -p will return up that means that node was currently rebooted and is 0 min up
-	Eventually(func() string {
+	Eventually(func(g Gomega) string {
 		output, err := runner.RunAtNode(node, "uptime", "-p")
-		if err != nil {
-			return "not yet"
-		}
+		// Using g.Expect makes Eventually retry on errors directly
+		g.Expect(err).NotTo(HaveOccurred())
 		return output
-	}, 300*time.Second, 5*time.Second).ShouldNot(Equal("up"), fmt.Sprintf("Node %s failed to start after reboot", node))
+	}, 300*time.Second, 5*time.Second).Should(ContainSubstring("up"), fmt.Sprintf("Node %s failed to start after reboot", node))
 }
 
 func createDummyConnection(nodesToModify []string, dummyName string) []error {
